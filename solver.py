@@ -80,8 +80,10 @@ def printOutput(assignment):
 
 def findUnitClause(formula: List[Clause]) -> List[Clause]:
     unitClauseList = []
+    print(formula)
     for eachClause in formula:
         if len(eachClause.literalSet) == 1 :
+            print(eachClause)
             unitClauseList.append(eachClause)
     return unitClauseList
 
@@ -103,13 +105,22 @@ def removeWithSpecified(formula: List[Clause], unitClauseList: List[Clause], spe
         
 
 def unitElim(formula: List[Clause], solutions: Set[str]):
+    print("Before Unit", formula)
     unitClauseList = findUnitClause(formula)
+    # print("Unit Clause list:", unitClauseList)
+    print("Unit Clause:", unitClauseList)
     for eachUnitClause in unitClauseList:
-        specified = eachUnitClause.literalSet[0]
-        # print("Specified: ", specified)
-        removeWithSpecified(formula, unitClauseList, specified)
-        solutions.add(specified.value)
-        formula.remove(eachUnitClause)
+        if len(eachUnitClause.literalSet) == 0:
+            continue
+        else:
+            specified = eachUnitClause.literalSet[0]
+            # print("Specified:", specified)
+            # print("Specified: ", specified)
+            removeWithSpecified(formula, unitClauseList, specified)
+            solutions.add(specified.value)
+            # print(unitClauseList)
+            formula.remove(eachUnitClause)
+            # print(unitClauseList)
         '''
         # If the Unit Clause is a negation case
         if isUnitCNeg(eachUnitClause):
@@ -186,8 +197,10 @@ def pickVar(formula: List[Clause]) -> str:
 def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
     # print("Before Elim Solution", solution)
     # print("Before Unit Elim", formula)
+
     unitElim(formula, solution)
     # print("After Unit Elim", formula)
+    print(solution)
     pureElim(formula, solution)
     # print("After Pure Elim", formula)
     # print("After Pure Elim SOlution", solution)
@@ -210,9 +223,14 @@ def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
         return posResult
     else:
         negFormula = formula.copy()
-        negFormula.append(Clause(len(formula), [Literal("-" + nextLit, False)]))
+        negFormula.append(Clause(len(formula), [Literal(nextLit, False)]))
         negSolution = solution.copy()
         negSolution.add("-" + nextLit)
+        print("F ", solution)
+  
+        print("FIRSTTTTTTTTTTTTTTTTTTTTT", nextLit)
+        print("FIRSTTTTTTTTTTTTTTTTTTTTT", nextLit)
+        print("FFFFF", negFormula)
         return solve(negFormula, negSolution)
 
 '''
@@ -240,7 +258,7 @@ if __name__ == "__main__":
     # print(varbset)
     # print("Before Elim: ", clauseSet)
     # # TODO: find a satisfying instance (or return unsat) and print it out
-    # print(pickVar(clauseSet))
+    print(pickVar(clauseSet))
     # # Solution Set
     # solutions = set()
 
@@ -249,6 +267,7 @@ if __name__ == "__main__":
     # print("After Unit Elim :", clauseSet)
     # pureElim(clauseSet, solutions)
     # print("After Pure Elim :", clauseSet)
+
     print("c solving", inputFile)
     preSolution = set()
     (solution, isSat) = solve(clauseSet, preSolution)
