@@ -80,10 +80,8 @@ def printOutput(assignment):
 
 def findUnitClause(formula: List[Clause]) -> List[Clause]:
     unitClauseList = []
-    print(formula)
     for eachClause in formula:
         if len(eachClause.literalSet) == 1 :
-            print(eachClause)
             unitClauseList.append(eachClause)
     return unitClauseList
 
@@ -105,50 +103,38 @@ def removeWithSpecified(formula: List[Clause], unitClauseList: List[Clause], spe
         
 
 def unitElim(formula: List[Clause], solutions: Set[str]):
-    print("Before Unit", formula)
-    unitClauseList = findUnitClause(formula)
+    # print("Before Unit", formula)
+    formulaCopy = formula.copy()
+    unitClauseList = findUnitClause(formulaCopy)
     # print("Unit Clause list:", unitClauseList)
-    print("Unit Clause:", unitClauseList)
     for eachUnitClause in unitClauseList:
         if len(eachUnitClause.literalSet) == 0:
             continue
         else:
             specified = eachUnitClause.literalSet[0]
-            # print("Specified:", specified)
-            # print("Specified: ", specified)
-            removeWithSpecified(formula, unitClauseList, specified)
+            oppoSpecified = str(int(specified.value) * -1)
+
+            formulaCopy = list(filter(lambda eachClause:
+                (specified not in eachClause.literalSet)
+                or (eachClause in unitClauseList), formulaCopy))
+
+            for i in range(0, len(formulaCopy)):
+                ecId = formulaCopy[i].id
+                ecClause = formulaCopy[i].literalSet
+                formulaCopy[i] = Clause(ecId, list(filter(lambda eachSymbol:
+                eachSymbol.value != oppoSpecified, ecClause)))
+            
+            # print("! ", formulaCopy)
+            # formulaCopy.remove(eachUnitClause)
             solutions.add(specified.value)
-            # print(unitClauseList)
-            formula.remove(eachUnitClause)
-            # print(unitClauseList)
-        '''
-        # If the Unit Clause is a negation case
-        if isUnitCNeg(eachUnitClause):
-            negUnit = eachUnitClause.literalSet[0].name
-            posUnit = str(int(negUnit) * -1)
-            newFormula = filter(lambda eachClause: { 
-                not (eachClause not in unitClauseList and negUnit in eachClause) } , formula)
 
-            for ec in newFormula:
-                filter(lambda symbol: {
-                    symbol != posUnit 
-                }, ec)
-            
-            solutions.add(negUnit)
-        # If the Unit Clause is a positive case
-        else:
-            posUnit = eachUnitClause.literalSet[0].name
-            negUnit = str(int(posUnit) * -1)
-            newFormula = filter(lambda eachClause: { 
-                not (eachClause not in unitClauseList and posUnit in eachClause) } , formula)
-
-            for ec in formula:
-                filter(lambda symbol: {
-                    symbol != negUnit 
-                }, ec.literalSet)
-            
-            solutions.add(negUnit)
-        '''
+    # print("Original Formula", formula)
+    # print("Formula Copy", formulaCopy)
+    # print(solutions)
+    return formulaCopy
+            # removeWithSpecified(formula, unitClauseList, specified)
+            # solutions.add(specified.value)
+            # formula.remove(eachUnitClause)
 
 def findPure(formula: List[Clause]) -> List[str]:
     pureSet = set()
@@ -165,16 +151,24 @@ def findPure(formula: List[Clause]) -> List[str]:
     return pureSet
 
 def removeVal(formula: List[Clause], elt: str):
-    for eachClause in formula:
-        if elt in map(lambda elt: elt.value, eachClause.literalSet):
-            formula.remove(eachClause)
+    formulaCopy = formula.copy()
+    # print("Formula Before", formulaCopy)
+    formulaCopy = list(filter(lambda eachClause:
+        elt not in map(lambda elt: elt.value, eachClause.literalSet), formulaCopy))
+    # print("Formula After", formulaCopy)
+    return formulaCopy
+
 
 
 def pureElim(formula: List[Clause], solutions: Set[str]):
-    pureSet = findPure(formula)
+    formulaCopy = formula.copy()
+    pureSet = findPure(formulaCopy)
+    # print("Pureset", pureSet)
     for eachPure in pureSet:
-        removeVal(formula, eachPure)
+        formulaCopy = removeVal(formulaCopy, eachPure)
         solutions.add(eachPure)
+    
+    return formulaCopy
         # assign x consistent with its sign
 
 def hasEmptyClause(formula: List[Clause]) -> bool:
@@ -195,26 +189,26 @@ def pickVar(formula: List[Clause]) -> str:
     
 
 def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
-    # print("Before Elim Solution", solution)
-    # print("Before Unit Elim", formula)
-
-    unitElim(formula, solution)
-    # print("After Unit Elim", formula)
-    print(solution)
-    pureElim(formula, solution)
+    # print("Before Elim", formula)
+    unitElimFormula = unitElim(formula, solution)
+    #print("After Unit", unitElimFormula)
+    currentFormula = pureElim(unitElimFormula, solution)
+    # print("After 1 Solve", currentFormula)
+    # print("Original", formula)
     # print("After Pure Elim", formula)
     # print("After Pure Elim SOlution", solution)
-    if hasEmptyClause(formula):
+
+    if hasEmptyClause(currentFormula):
         return (set(), False)
-    if len(formula) == 0:
+    if len(currentFormula) == 0:
         return (solution.copy(), True)
 
 
-    nextLit = pickVar(formula)
+    nextLit = pickVar(currentFormula)
     # print("Picked Var:", nextLit)
 
-    posFormula = formula.copy()
-    posFormula.append(Clause(len(formula), [Literal(nextLit, True)]))
+    posFormula = currentFormula.copy()
+    posFormula.append(Clause(len(currentFormula), [Literal(nextLit, True)]))
     posSolution = solution.copy()
     posSolution.add(nextLit)
 
@@ -222,15 +216,15 @@ def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
     if posResult[1]:
         return posResult
     else:
-        negFormula = formula.copy()
-        negFormula.append(Clause(len(formula), [Literal(nextLit, False)]))
+        negFormula = currentFormula.copy()
+        negFormula.append(Clause(len(currentFormula), [Literal(nextLit, False)]))
         negSolution = solution.copy()
         negSolution.add("-" + nextLit)
-        print("F ", solution)
+        # print("F ", solution)
   
-        print("FIRSTTTTTTTTTTTTTTTTTTTTT", nextLit)
-        print("FIRSTTTTTTTTTTTTTTTTTTTTT", nextLit)
-        print("FFFFF", negFormula)
+        # print("FIRSTTTTTTTTTTTTTTTTTTTTT", nextLit)
+        # print("FIRSTTTTTTTTTTTTTTTTTTTTT", nextLit)
+        # print("FFFFF", negFormula)
         return solve(negFormula, negSolution)
 
 '''
@@ -258,19 +252,28 @@ if __name__ == "__main__":
     # print(varbset)
     # print("Before Elim: ", clauseSet)
     # # TODO: find a satisfying instance (or return unsat) and print it out
-    print(pickVar(clauseSet))
+    # print(pickVar(clauseSet))
+
+
     # # Solution Set
     # solutions = set()
 
-    # # Unit Clause Step
-    # unitElim(clauseSet, solutions)
-    # print("After Unit Elim :", clauseSet)
-    # pureElim(clauseSet, solutions)
-    # print("After Pure Elim :", clauseSet)
+    # print(clauseSet)
+    # clauseSet = list(filter(lambda ec: len(ec.literalSet) == 1, clauseSet))
+    # print(clauseSet)
+
+
+    # Unit Clause Step
+    # print("Formula:", clauseSet)
+    # newC = unitElim(clauseSet, solutions)
+    # print("After Unit Elim :", newC)
+    # newC1 = pureElim(newC, solutions)
+    # print("After Pure Elim :", newC1)
 
     print("c solving", inputFile)
     preSolution = set()
     (solution, isSat) = solve(clauseSet, preSolution)
+
     # print('----')
     # print(isSat)
     # print(solution)
