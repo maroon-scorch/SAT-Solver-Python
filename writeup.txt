@@ -1,0 +1,13 @@
+In this assignment we implement the DPLL SAT solver in python (3.7+). Our function map is as follows:
+
+Solver.py
+
+findUnitClause :  Helper function for finding the unit clause in the formula
+unitElim : This function performs the unit elimination step in the DPLL algorithm.
+findPure : Helper function to find pure literals
+pureElim : This function implements the pure elimination step of DPLL. 
+hasEmptyClause : Helper function to find the presence of empty clause in the formula
+pickVar : Helper function to pick a variable randomly from the current formula. This could be mode or any other statistically efficient method but we randomise it in our algorithm
+solve : The main function for the solver that implements the DPLL algorithm recursively and returns if satisfiable alongwith a solution set.
+
+Tester.py : This is our testing suite were we write unit test for testing edge cases for our implementation
