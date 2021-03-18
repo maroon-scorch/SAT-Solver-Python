@@ -7,10 +7,16 @@ from typing import List, Set
 # Feel free to change the provided types and parsing code to match
 # your preferred representation of formulas, clauses, and literals.
 
+# Run program using 'python solver.py [directory to file]'
+
+# IO Implementation to handle the File Input (Provided by Assignment):
+
+# Class representing a Literal:
 class Literal:
     def __init__(self, name, sign):
         self.name = name  # integer
         self.sign = sign  # boolean
+        # The String Representation of the value of the Literal
         self.value = ("-" if not self.sign else "") + self.name #String
 
     def __repr__(self):
@@ -24,7 +30,7 @@ class Literal:
     def __hash__(self):
       return hash((self.name, self.sign))
 
-
+# Class representing a Clause:
 class Clause:
     def __init__(self, id, literalSet):
         self.id = id
@@ -36,7 +42,7 @@ class Clause:
     def __eq__(self, other):
         if type(other) != Clause:
             return False
-        return self.id == other.id
+        return (self.id == other.id) and (self.literalSet == other.literalSet)
 
 
 # Read and parse a cnf file, returning the variable set and clause set
@@ -64,20 +70,22 @@ def readInput(cnfFile):
 
 
 # Print the result in DIMACS format
+# Assignment is a set of Strings with each String being a non-zero
+# integer that is either positive or negative
 def printOutput(assignment):
     result = ""
     isSat = (assignment is not None)
     if isSat:
         for var in assignment:
             result += " " + var
-            # result += " " + ("" if assignment[var] else "-") + var
-            # str(var)
 
     print(f"s {'SATISFIABLE' if isSat else 'UNSATISFIABLE'}")
     if isSat:
         print(f"v{result} 0")
 
-
+"""
+    Finds all Unit Clauses within a given formula.
+""" 
 def findUnitClause(formula: List[Clause]) -> List[Clause]:
     unitClauseList = []
     for eachClause in formula:
@@ -85,7 +93,14 @@ def findUnitClause(formula: List[Clause]) -> List[Clause]:
             unitClauseList.append(eachClause)
     return unitClauseList        
 
-def unitElim(formula: List[Clause], solutions: Set[str]):
+"""
+    Performs Unit Elimination on the Given Formula:
+    * For all Unit Clauses found:
+    1. Removes all Clauses with that Exact Clause
+    2. Remove all instances of the converse of the Unit Clause
+    3. Assign the Unit Clause to the solution set.
+""" 
+def unitElim(formula: List[Clause], solutions: Set[str]) -> List[Clause]:
     # Copy the Formula to avoid Mutability Issues
     formulaCopy = formula.copy()
 
@@ -94,10 +109,15 @@ def unitElim(formula: List[Clause], solutions: Set[str]):
 
     # For each Unit Clause in the list:
     for eachUnitClause in unitClauseList:
+        # Occurs when a Unit Clause and its Converse both exist as
+        # individual clauses, the one that comes after the first will be
+        # removed.
         if len(eachUnitClause.literalSet) == 0:
             continue
         else:
+            # Specified Value (ex. Unit Clause of +x -> +x)
             specified = eachUnitClause.literalSet[0]
+            # (ex. If specified is +x, opposite is -x)
             oppoSpecified = str(int(specified.value) * -1)
 
             # Remove the non-unit-Clauses containing the unit clause
@@ -115,10 +135,12 @@ def unitElim(formula: List[Clause], solutions: Set[str]):
             
             # Add the Specified Value to the Solution
             solutions.add(specified.value)
-
     return formulaCopy
 
-def findPure(formula: List[Clause]) -> List[str]:
+"""
+    Finds all Pure Clauses in a given formula.
+""" 
+def findPure(formula: List[Clause]) -> Set[str]:
     pureSet = set()
     seam = set()
 
@@ -132,7 +154,10 @@ def findPure(formula: List[Clause]) -> List[str]:
     
     return pureSet
 
-def removeVal(formula: List[Clause], elt: str):
+"""
+    Removes all clauses containing a given value (+x or -x)
+""" 
+def removeVal(formula: List[Clause], elt: str) -> List[Clause]:
     formulaCopy = formula.copy()
     # print("Formula Before", formulaCopy)
     formulaCopy = list(filter(lambda eachClause:
@@ -140,9 +165,13 @@ def removeVal(formula: List[Clause], elt: str):
     # print("Formula After", formulaCopy)
     return formulaCopy
 
-
-
-def pureElim(formula: List[Clause], solutions: Set[str]):
+"""
+    Performs Pure Elimination on the Formula:
+    * For all Pure Clauses Found
+    1. Eliminate all Clauses containing the Pure Clause
+    2. Add the Pure Clause to the Solution
+""" 
+def pureElim(formula: List[Clause], solutions: Set[str]) -> List[Clause]:
     # Make a copy of the Formula to avoid Mutability Issues
     formulaCopy = formula.copy()
     # Find the set of Pure Clauses
@@ -157,6 +186,9 @@ def pureElim(formula: List[Clause], solutions: Set[str]):
     
     return formulaCopy
 
+"""
+    Checks if the Formula has an empty clause.
+""" 
 def hasEmptyClause(formula: List[Clause]) -> bool:
     cond = False
     for eachClause in formula:
@@ -165,28 +197,27 @@ def hasEmptyClause(formula: List[Clause]) -> bool:
             break
     return cond
 
-# Can change later just dont want to deal with now
+"""
+    Select a Literal in the Formula to recur on.
+""" 
 def pickVar(formula: List[Clause]) -> str:
     eltSet = set()
     for eachClause in formula:
         for eachSymbol in eachClause.literalSet:
             eltSet.add(eachSymbol.name)
+    # The implementation choice here is to randomly pick a literal.
     return random.choice(tuple(eltSet))
     
-
+"""
+    Given a formula and a solution set (initially empty),
+    either returns the solution that satisfies the formula or
+    determine the formula to be unsat.
+""" 
 def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
-    # print("Before Elim", formula)
-
     # Performs Unit Elimination on the Formula
     unitElimFormula = unitElim(formula, solution)
     # Performs Pure Elimination on the Formula
     currentFormula = pureElim(unitElimFormula, solution)
-
-    #print("After Unit", unitElimFormula)
-    # print("After 1 Solve", currentFormula)
-    # print("Original", formula)
-    # print("After Pure Elim", formula)
-    # print("After Pure Elim SOlution", solution)
 
     # If the Formula has an empty clauses - no solution
     if hasEmptyClause(currentFormula):
@@ -205,8 +236,10 @@ def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
     posSolution.add(nextLit)
 
     posResult = solve(posFormula, posSolution)
+    # If positive Formula is SAT, returns the answer
     if posResult[1]:
         return posResult
+    # Else, recur on the negative case
     else:
         # Constructs the Negative Formula
         negFormula = currentFormula.copy()
@@ -216,71 +249,32 @@ def solve(formula: List[Clause], solution: Set[str]) -> (Set[str], bool):
 
         return solve(negFormula, negSolution)
 
-'''
-func solve(varAssignment, formula):
-	// do unit clause elim and pure literal elim on the formula
-	unitClauseElim(formula)
-	pureLiteralElim(formula)
+"""
+    Completes the Incomplete Solution given in
+""" 
+def completeSolve(varbset : List[str], incompleteSol: Set[str]) -> List[str]:
+    unsignedSolution = list(map(lambda s: str(abs(int(s))), incompleteSol.copy()))
+    completeSolution = set(incompleteSol).union(set(varbset) - set(unsignedSolution))
+    return list(completeSolution)
 
-	if formula has empty clause
-		return unsat
-	if formula has no clauses
-		sat -> return current varAssignment
-	
-	x := pickVar(formula) // do anything reasonable here
-	if solve(varAssignment + {+x}, formula) is sat
-		return result of solving with x assigned to true
-	else
-		return solve(varAssignment + {-x}, formula)
-'''
-
-
+# The Main Method to execute:
 if __name__ == "__main__":
     inputFile = sys.argv[1]
     varbset, clauseSet = readInput(inputFile)
-    # print(varbset)
-    # print("Before Elim: ", clauseSet)
-    # # TODO: find a satisfying instance (or return unsat) and print it out
-    # print(pickVar(clauseSet))
 
-
-    # # Solution Set
-    # solutions = set()
-
-    # print(clauseSet)
-    # clauseSet = list(filter(lambda ec: len(ec.literalSet) == 1, clauseSet))
-    # print(clauseSet)
-
-
-    # Unit Clause Step
-    # print("Formula:", clauseSet)
-    # newC = unitElim(clauseSet, solutions)
-    # print("After Unit Elim :", newC)
-    # newC1 = pureElim(newC, solutions)
-    # print("After Pure Elim :", newC1)
-
+    # TODO: find a satisfying instance (or return unsat) and print it out
     print("c solving", inputFile)
+    # Constructs the Initial Empty Set of Solution
     preSolution = set()
+    # Retrieves the Result from the Solver
     (solution, isSat) = solve(clauseSet, preSolution)
 
-    # print('----')
-    # print(isSat)
-    # print(solution)
-
+    # If the solution is SAT, there is a possibility that the solution set
+    # does not contain all literals. This is because some literals, regardless
+    # of what their value is assigned, is entirely irrelevant to the outcome of
+    # satisfiability. These Literals are default assigned with true.
     if isSat:
-        unsignedSolution = list(map(lambda s: str(abs(int(s))), solution.copy()))
-        completeSolution = set(solution).union(set(varbset) - set(unsignedSolution))
-        # print(completeSolution)
-        printOutput(list(completeSolution))
+        printOutput(completeSolve(varbset, solution))
+    # If the solution is UNSAT, pass None to the printOutput
     else:
         printOutput(None)
-
-
-    '''
-    for each unit clause {+/-x} in formula
-	remove all non-unit clauses containing +/-x
-	remove all instances of -/+x in every clause // flipped sign!
-	assign x consistent with its sign in unit clause
-    '''
-
-

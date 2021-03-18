@@ -1,3 +1,32 @@
+Write-up:
+
+We compared our solver against Forge's solver on directed_tree.rkt from Forge 1
+under "option verbosity 1".
+Specifically, we tested two cases, one sat and one unsat:
+
+test expect {
+  directedTreeIsSat : {isDirectedTree[edges]} is sat
+  selfContradcitory : {isDirectedTree[edges] <=> not isDirectedTree[edges]} for exactly 4 Atom is unsat
+}
+
+For our solver, "directedTreeIsSat" took 530 miliseconds and "selfContradcitory" got #f in statistics.
+For Forge's solver, "directedTreeIsSat" took 7 miliseconds and "selfContradcitory" took about 0 miliseconds.
+
+Here are the rough logs:
+
+"#vars: (size-variables 420); #primary: (size-primary 20); #clauses: (size-clauses 580)
+Transl (ms): (time-translation 126); Solving (ms): (time-solving 530)
+#vars: #f; #primary: #f; #clauses: #f
+Transl (ms): #f; Solving (ms): #f"
+
+"#vars: (size-variables 420); #primary: (size-primary 20); #clauses: (size-clauses 580)
+Transl (ms): (time-translation 120); Solving (ms): (time-solving 7)
+#vars: (size-variables 0); #primary: (size-primary 0); #clauses: (size-clauses 0)
+Transl (ms): (time-translation 110); Solving (ms): (time-solving 0) Core min (ms): (time-core 0)"
+
+------------------------------------------------------------------------------------------------------
+Assignment Description:
+
 In this assignment we implement the DPLL SAT solver in python (3.7+). Our function map is as follows:
 
 Solver.py
@@ -11,3 +40,5 @@ pickVar : Helper function to pick a variable randomly from the current formula. 
 solve : The main function for the solver that implements the DPLL algorithm recursively and returns if satisfiable alongwith a solution set.
 
 Tester.py : This is our testing suite were we write unit test for testing edge cases for our implementation
+
+Additional Test Files can also be found under the test directory.
